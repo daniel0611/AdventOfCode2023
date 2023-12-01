@@ -1,0 +1,25 @@
+name: Update AoC Badges
+on:
+  schedule:
+    # from the 1. December till 25. December every day at 5:06am (avoid load at full hours)
+    - cron: '6 5 1-25 12 *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '**/*.rs'
+
+jobs:
+  update_badges:
+    if: startsWith(github.repository, 'daniel0611') # don't run in forks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: J0B10/aoc-badges-action@v3
+        with:
+          userid: 662534
+          session: ${{ secrets.AOC_SESSION }}
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update badges
+          file_pattern: README.md
