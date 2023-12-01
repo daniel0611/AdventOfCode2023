@@ -17,7 +17,7 @@ fn solve_a(input: &PuzzleInput) -> usize {
         .lines()
         .map(|line| {
             line.chars()
-                .filter(|c| c.is_digit(10))
+                .filter(|c| c.is_ascii_digit())
                 .map(|d| d.to_digit(10).unwrap() as usize)
                 .collect::<Vec<_>>()
         })
@@ -51,7 +51,7 @@ fn get_digits(line_original: String) -> Vec<usize> {
         }
 
         let c = line.chars().next().unwrap();
-        if c.is_digit(10) {
+        if c.is_ascii_digit() {
             digits.push(c.to_digit(10).unwrap() as usize);
         }
 

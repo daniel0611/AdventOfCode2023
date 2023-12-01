@@ -54,7 +54,7 @@ aoc-utils = {{ path = "../aoc-utils" }}
 "#,
         day
     );
-    fs::write(&cargo_toml_path, cargo_toml_str).expect("Could not write Cargo.toml");
+    fs::write(cargo_toml_path, cargo_toml_str).expect("Could not write Cargo.toml");
 }
 
 fn create_src(day: u8, day_dir: &Path) {
@@ -106,7 +106,7 @@ mod tests {{
 "#,
         day = day
     );
-    fs::write(&main_rs_path, main_rs_str).expect("Could not write main.rs");
+    fs::write(main_rs_path, main_rs_str).expect("Could not write main.rs");
 }
 
 fn create_input_file(day: u8, day_dir: &Path) {
