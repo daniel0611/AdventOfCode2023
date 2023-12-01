@@ -6,3 +6,4 @@ members = [
     "day*",
 ]
 
+resolver = "2"
