@@ -107,10 +107,8 @@ impl Map {
                         if (number.start_col..=number.end_col).contains(&col) {
                             numbers.push(number);
                         }
-                    } else {
-                        if (number.start_col - 1..=number.end_col).contains(&col) {
-                            numbers.push(number);
-                        }
+                    } else if (number.start_col - 1..=number.end_col).contains(&col) {
+                        numbers.push(number);
                     }
                 }
             }

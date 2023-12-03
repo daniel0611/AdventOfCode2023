@@ -34,7 +34,7 @@ impl Game {
         let id = parts
             .next()
             .unwrap()
-            .split(" ")
+            .split(' ')
             .nth(1)
             .unwrap()
             .parse()
@@ -44,7 +44,7 @@ impl Game {
         for cube_set in parts.next().unwrap().split("; ") {
             let mut cubes = Vec::new();
             for cube in cube_set.split(", ") {
-                let mut parts = cube.split(" ");
+                let mut parts = cube.split(' ');
                 let count = parts.next().unwrap().parse().unwrap();
                 let color = CubeColor::parse(parts.next().unwrap());
                 for _ in 0..count {
