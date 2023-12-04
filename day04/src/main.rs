@@ -71,22 +71,21 @@ fn main() {
 fn solve_a(input: &PuzzleInput) -> usize {
     input
         .lines()
-        .map(|line| Card::parse(line))
+        .map(Card::parse)
         .map(|card| card.calculate_points())
         .sum()
 }
 
 fn solve_b(input: &PuzzleInput) -> usize {
-    let available_cards: Vec<_> = input.lines().map(|line| Card::parse(line)).collect();
+    let available_cards: Vec<_> = input.lines().map(Card::parse).collect();
     let mut total_cards = available_cards.clone();
     let mut cards_left_to_process = available_cards.clone();
 
-    while cards_left_to_process.len() > 0 {
-        let card = cards_left_to_process.pop().unwrap();
+    while let Some(card) = cards_left_to_process.pop() {
         let match_count = card.count_matching_numbers();
 
         let new_cards = (card.id + 1..=card.id + match_count)
-            .flat_map(|id| available_cards.iter().filter(|c| c.id == id).next());
+            .flat_map(|id| available_cards.iter().find(|c| c.id == id));
 
         new_cards.for_each(|card| {
             total_cards.push(card.clone());
