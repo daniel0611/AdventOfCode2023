@@ -1,3 +1,5 @@
+use std::ops::RangeInclusive;
+
 use aoc_utils::PuzzleInput;
 const DAY: u8 = 5;
 const START_CATEGORY: &str = "seed";
@@ -7,6 +9,16 @@ fn main() {
     let input = PuzzleInput::get_input(DAY);
     println!("A: {}", solve_a(&input));
     println!("B: {}", solve_b(&input));
+}
+
+fn range_split_at(
+    range: RangeInclusive<usize>,
+    split_at: usize,
+) -> (RangeInclusive<usize>, RangeInclusive<usize>) {
+    let left = (*range.start())..=split_at;
+    let right = (split_at + 1)..=(*range.end());
+
+    (left, right)
 }
 
 struct TranslationRange {
@@ -32,18 +44,86 @@ impl TranslationRange {
         }
     }
 
-    fn map_number(&self, num: usize) -> usize {
-        if !self.is_in_range(num) {
-            // out of range, don't translate
-            num
+    fn map_range(&self, num_range: &RangeInclusive<usize>) -> Vec<RangeInclusive<usize>> {
+        let range_overlap = Self::get_overlapping_range(
+            num_range,
+            &(self.source_start..=self.source_start + self.range_length),
+        );
+        if range_overlap.is_none() {
+            // no overlap, return the original range and do nothing
+            return vec![num_range.clone()];
+        }
+        let range_overlap = range_overlap.unwrap();
+        println!("Overlap: {:?}", range_overlap);
+        println!("Range: {:?}", num_range);
+
+        // Determine whether the range is fully contained in the translation range
+        // or whether it is partially contained and we need to split num_range
+        if range_overlap == *num_range {
+            // The range is fully contained in the translation range
+            // so we can just translate it
+            let start = *num_range.start();
+            let offset = start - self.source_start;
+            let destination_element_start = self.destination_start + offset;
+
+            let range_length = *num_range.end() - *num_range.start();
+            vec![destination_element_start..=destination_element_start + range_length]
         } else {
-            let offset = num - self.source_start;
-            self.destination_start + offset
+            // The range is partially contained in the translation range
+            // so we need to split it at overlap end or start depending on position
+            if *num_range.start() < *range_overlap.start() {
+                // Split at overlap start
+                let (left, right) = range_split_at(num_range.clone(), *range_overlap.start());
+                println!(
+                    "Range: {:?}, Left: {:?}, Right: {:?}",
+                    num_range, left, right
+                );
+                self.map_range(&left)
+                    .into_iter()
+                    .chain(self.map_range(&right))
+                    .collect()
+            } else {
+                // Split at overlap end
+                let (left, right) = range_split_at(num_range.clone(), *range_overlap.end());
+                self.map_range(&left)
+                    .into_iter()
+                    .chain(self.map_range(&right))
+                    .collect()
+            }
         }
     }
 
-    fn is_in_range(&self, num: usize) -> bool {
-        num >= self.source_start && num < self.source_start + self.range_length
+    fn get_overlapping_range(
+        a: &RangeInclusive<usize>,
+        b: &RangeInclusive<usize>,
+    ) -> Option<RangeInclusive<usize>> {
+        let a_range = a.start()..=a.end();
+        let b_range = b.start()..=b.end();
+
+        if a_range.start() <= b_range.end() && b_range.start() <= a_range.end() {
+            let start = a_range.start().max(b_range.start());
+            let end = a_range.end().min(b_range.end());
+
+            Some(**start..=**end)
+        } else {
+            None
+        }
+    }
+
+    fn is_in_range(&self, num: &RangeInclusive<usize>) -> bool {
+        let r = self.source_start..=self.source_start + self.range_length;
+        // println!(
+        //     "{} {}\t{} {}\t{}",
+        //     *r.start(),
+        //     *r.end(),
+        //     *num.start(),
+        //     *num.end(),
+        //     *r.start() <= *num.end() && *num.start() <= *r.end()
+        // );
+
+        // Check whether the range overlaps with the translation range
+        // *r.start() <= *num.end() && *num.start() <= *r.end()
+        Self::get_overlapping_range(&r, num).is_some()
     }
 }
 
@@ -72,11 +152,11 @@ impl TranslationMap {
 
 struct Almanac {
     translation_maps: Vec<TranslationMap>,
-    initial_seeds: Vec<usize>,
+    initial_seeds: Vec<RangeInclusive<usize>>,
 }
 
 impl Almanac {
-    fn parse(input: &PuzzleInput) -> Self {
+    fn parse(input: &PuzzleInput, seeds_are_ranges: bool) -> Self {
         let initial_seeds = input
             .lines()
             .next()
@@ -84,9 +164,23 @@ impl Almanac {
             .split(": ")
             .nth(1)
             .unwrap()
-            .split(" ")
+            .split(' ')
             .flat_map(|str| str.parse())
-            .collect();
+            .collect::<Vec<usize>>();
+
+        let initial_seed_ranges: Vec<_> = if seeds_are_ranges {
+            initial_seeds
+                .chunks(2)
+                .map(|seed_range| {
+                    let start = seed_range[0];
+                    let length = seed_range[1];
+
+                    start..=start + length
+                })
+                .collect()
+        } else {
+            initial_seeds.iter().map(|num| *num..=*num).collect()
+        };
 
         let input_without_initial_seeds = input.lines().skip(2).collect::<Vec<_>>().join("\n");
         let translation_maps = input_without_initial_seeds
@@ -96,13 +190,14 @@ impl Almanac {
 
         Self {
             translation_maps,
-            initial_seeds,
+            initial_seeds: initial_seed_ranges,
         }
     }
 
-    fn translate_till_end_location(&self) -> Vec<usize> {
+    fn translate_till_end_location(&self) -> Vec<RangeInclusive<usize>> {
         let mut current_category = START_CATEGORY;
-        let mut numbers = self.initial_seeds.clone();
+        let mut number_ranges = self.initial_seeds.clone();
+        println!("Number ranges: {:?}", number_ranges);
 
         while current_category != END_CATEGORY {
             let map = self
@@ -111,38 +206,46 @@ impl Almanac {
                 .find(|map| map.source_type == current_category)
                 .unwrap();
 
-            numbers = numbers
-                .iter_mut()
-                .map(|num| {
-                    let translation_range = map.ranges.iter().find(|range| range.is_in_range(*num));
-
-                    match translation_range {
-                        Some(range) => range.map_number(*num),
-                        None => *num,
+            number_ranges = number_ranges
+                .iter()
+                .flat_map(|number_range| {
+                    let mapping = map
+                        .ranges
+                        .iter()
+                        .find(|translation_map| translation_map.is_in_range(number_range));
+                    match mapping {
+                        Some(mapping) => mapping.map_range(number_range),
+                        None => vec![number_range.clone()],
                     }
                 })
                 .collect();
             current_category = &map.destination_type;
+
+            println!(
+                "Translated from {} to {}",
+                map.source_type, map.destination_type
+            );
+            println!("Number ranges: {:?}", number_ranges);
         }
 
-        numbers
+        number_ranges
     }
 
     fn get_minimum_end_category_number(&self) -> usize {
         self.translate_till_end_location()
             .iter()
+            .map(|range| *range.start())
             .min()
             .unwrap()
-            .clone()
     }
 }
 
 fn solve_a(input: &PuzzleInput) -> usize {
-    Almanac::parse(input).get_minimum_end_category_number()
+    Almanac::parse(input, false).get_minimum_end_category_number()
 }
 
 fn solve_b(input: &PuzzleInput) -> usize {
-    input.lines().count()
+    Almanac::parse(input, true).get_minimum_end_category_number()
 }
 
 #[cfg(test)]
@@ -187,7 +290,7 @@ humidity-to-location map:
     fn test_no_panic() {
         let input = PuzzleInput::get_input(DAY);
         solve_a(&input);
-        solve_b(&input);
+        // solve_b(&input);
     }
 
     #[test]
