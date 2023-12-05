@@ -57,7 +57,7 @@ fn get_digits(line_original: String) -> Vec<usize> {
 
         line = line[1..].to_string();
     }
-    println!("{} {:?}", line_original, digits);
+    println!("{line_original} {:?}", digits);
 
     digits
 }
