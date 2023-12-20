@@ -1,7 +1,7 @@
 # Advent of Code 2023
 
 [![Language](https://img.shields.io/badge/Language-rust-red)](https://rust-lang.org/)
-[![Days completed](https://img.shields.io/badge/day%20📅-19-blue)](https://adventofcode.com/2022)
+[![Days completed](https://img.shields.io/badge/day%20📅-20-blue)](https://adventofcode.com/2022)
 [![Stars](https://img.shields.io/badge/stars%20⭐-17-yellow)](https://adventofcode.com/2022/stats)
 
 This repository contains my solutions for the [Advent Of Code](https://adventofcode.com/) 2023 challenges.
